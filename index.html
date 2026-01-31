@@ -46,18 +46,6 @@ header{
   justify-content:space-between;
 }
 .small{font-size:13px;color:var(--muted);}
-.category{margin-top:12px;}
-.progress{
-  height:7px;
-  background:#D5F5E3;
-  border-radius:6px;
-  overflow:hidden;
-  margin-top:4px;
-}
-.progress div{
-  height:100%;
-  background:var(--primary);
-}
 .fab{
   position:fixed;
   bottom:80px;
@@ -104,7 +92,7 @@ input,select,button{
 
 <body>
 
-<!-- INICIO -->
+<!-- HOME -->
 <div class="screen active" id="home">
   <header id="month"></header>
 
@@ -124,16 +112,16 @@ input,select,button{
   </div>
 
   <div class="card">
-    <strong>Últimos movimientos</strong>
+    <strong>Último movimiento</strong>
     <p class="small" id="last">Sin movimientos</p>
   </div>
 </div>
 
-<!-- AÑADIR -->
+<!-- ADD -->
 <div class="screen" id="add">
   <header>Añadir movimiento</header>
   <div class="card">
-    <input type="number" id="amount" placeholder="Cantidad €">
+    <input type="number" id="amount" placeholder="Cantidad (€)">
     <select id="type">
       <option value="income">Ingreso</option>
       <option value="expense">Gasto</option>
@@ -146,69 +134,84 @@ input,select,button{
       <option>Salud</option>
       <option>Suscripciones</option>
     </select>
-    <button onclick="addMove()">Guardar</button>
+    <button id="saveBtn">Guardar</button>
   </div>
 </div>
 
-<!-- ESTADÍSTICAS -->
-<div class="screen" id="stats">
-  <header>Estadísticas</header>
-  <div class="card">
-    <p class="small">Próximamente gráficos y análisis</p>
-  </div>
-</div>
-
-<!-- AHORRO -->
-<div class="screen" id="savings">
-  <header>Ahorro</header>
-  <div class="card">
-    <p class="small">Objetivos de ahorro</p>
-  </div>
-</div>
-
-<!-- AJUSTES -->
-<div class="screen" id="settings">
-  <header>Ajustes</header>
-  <div class="card">
-    <p class="small">Presupuestos y colores pastel</p>
-  </div>
-</div>
-
-<button class="fab" onclick="show('add')">+</button>
+<button class="fab" id="addBtn">+</button>
 
 <nav>
-  <button onclick="show('stats')">Estadísticas</button>
-  <button class="active" onclick="show('home')">Inicio</button>
-  <button onclick="show('savings')">Ahorro</button>
-  <button onclick="show('settings')">Ajustes</button>
+  <button onclick="show('home')" class="active">Inicio</button>
+  <button onclick="show('add')">Añadir</button>
 </nav>
 
 <script>
-const month=document.getElementById("month");
-const now=new Date();
-month.textContent=now.toLocaleString("es",{month:"long",year:"numeric"});
+// REFERENCIAS (CRÍTICO PARA iOS)
+const monthEl = document.getElementById("month");
+const incomeEl = document.getElementById("income");
+const expensesEl = document.getElementById("expenses");
+const availableEl = document.getElementById("available");
+const lastEl = document.getElementById("last");
 
-let data=JSON.parse(localStorage.getItem("flowfyData"))||{
-  income:0,
-  expenses:0,
-  last:null
+const amountEl = document.getElementById("amount");
+const typeEl = document.getElementById("type");
+const categoryEl = document.getElementById("category");
+
+const addBtn = document.getElementById("addBtn");
+const saveBtn = document.getElementById("saveBtn");
+
+// FECHA
+const now = new Date();
+monthEl.textContent = now.toLocaleString("es", { month:"long", year:"numeric" });
+
+// DATOS
+let data = JSON.parse(localStorage.getItem("flowfy")) || {
+  income: 0,
+  expenses: 0,
+  last: null
 };
 
-function save(){
-  localStorage.setItem("flowfyData",JSON.stringify(data));
-  render();
-}
-
+// FUNCIONES
 function show(id){
-  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
-function
+function save(){
+  localStorage.setItem("flowfy", JSON.stringify(data));
+  render();
+}
 
+function render(){
+  incomeEl.textContent = data.income + " €";
+  expensesEl.textContent = data.expenses + " €";
+  availableEl.textContent = (data.income - data.expenses) + " €";
+  lastEl.textContent = data.last || "Sin movimientos";
+}
 
+// EVENTOS
+addBtn.addEventListener("click", () => show("add"));
 
+saveBtn.addEventListener("click", () => {
+  const amt = Number(amountEl.value);
+  if (!amt) return;
 
+  if (typeEl.value === "income") {
+    data.income += amt;
+  } else {
+    data.expenses += amt;
+  }
 
+  data.last = `${typeEl.value === "income" ? "Ingreso" : "Gasto"} · ${categoryEl.value} · ${amt} €`;
+  amountEl.value = "";
+  save();
+  show("home");
+});
+
+render();
+</script>
+
+</body>
+</html>
 
 
