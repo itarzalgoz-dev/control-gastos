@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mi Control de Gastos</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4CAF50">
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f4f7;
+  margin: 0;
+  padding: 15px;
+}
+h1 { text-align: center; }
+.card {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+}
+input, select, button {
+  width: 100%;
+  padding: 8px;
+  margin-top: 6px;
+}
+button {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+}
+.progress {
+  background: #ddd;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.progress div {
+  height: 10px;
+  background: #4CAF50;
+}
+.warning { background: #f44336; }
+</style>
+</head>
+
+<body>
+<h1>💸 Control de Gastos</h1>
+
+<div class="card">
+<h3>Mes actual</h3>
+<p id="currentMonth"></p>
+</div>
+
+<div class="card">
+<h3>Ingreso del mes</h3>
+<input type="number" id="incomeInput" placeholder="Ingreso">
+<button onclick="setIncome()">Guardar ingreso</button>
+</div>
+
+<div class="card">
+<h3>Añadir gasto</h3>
+<input type="number" id="expenseAmount" placeholder="Cantidad">
+<select id="expenseCategory"></select>
+<button onclick="addExpense()">Añadir gasto</button>
+</div>
+
+<div class="card">
+<h3>Nueva categoría</h3>
+<input type="text" id="newCategory" placeholder="Nombre categoría">
+<button onclick="addCategory()">Crear categoría</button>
+</div>
+
+<div id="categories"></div>
+
+<div class="card">
+<h3>📊 Histórico</h3>
+<select id="historySelect" onchange="loadHistory()"></select>
+</div>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js');
+}
+
+const now = new Date();
+const monthKey = now.toISOString().slice(0,7);
+document.getElementById("currentMonth").textContent = monthKey;
+
+let data = JSON.parse(localStorage.getItem("financeApp")) || {
+  months: {},
+  categoriesList: [
+    "Suscripciones","Salud","Belleza","Libros","Regalos",
+    "Alimentación","Viajes","Restaurantes","Lego","Ocio"
+  ]
+};
+
+if (!data.months[monthKey]) {
+  data.months[monthKey] = { income: 0, categories: {} };
+  data.categoriesList.forEach(c => {
+    data.months[monthKey].categories[c] = { budget: 0, spent: 0 };
+  });
+}
+
+const catSelect = document.getElementById("expenseCategory");
+function updateCategorySelect() {
+  catSelect.innerHTML = "";
+  data.categoriesList.forEach(c => {
+    const o = document.createElement("option");
+    o.textContent = c;
+    catSelect.appendChild(o);
+  });
+}
+
+function save() {
+  localStorage.setItem("financeApp", JSON.stringify(data));
+  render();
+}
+
+function setIncome() {
+  data.months[monthKey].income = Number(incomeInput.value);
+  save();
+}
+
+function addExpense() {
+  const amount = Number(expenseAmount.value);
+  const cat = catSelect.value;
+  data.months[monthKey].categories[cat].spent += amount;
+  save();
+}
+
+function addCategory() {
+  const name = newCategory.value.trim();
+  if (!name || data.categoriesList.includes(name)) return;
+  data.categoriesList.push(name);
+  Object.values(data.months).forEach(m => {
+    m.categories[name] = { budget: 0, spent: 0 };
+  });
+  save();
+}
+
+function render() {
+  updateCategorySelect();
+  const container = document.getElementById("categories");
+  container.innerHTML = "";
+  const month = data.months[monthKey];
+
+  data.categoriesList.forEach(cat => {
+    const c = month.categories[cat];
+    const pct = c.budget ? (c.spent / c.budget) * 100 : 0;
+    container.innerHTML += `
+      <div class="card">
+        <h4>${cat}</h4>
+        <input type="number" placeholder="Presupuesto"
+          value="${c.budget}"
+          onchange="data.months['${monthKey}'].categories['${cat}'].budget=this.value; save();">
+        <p>Gastado: ${c.spent.toFixed(2)} €</p>
+        <div class="progress">
+          <div style="width:${Math.min(pct,100)}%" class="${pct>100?'warning':''}"></div>
+        </div>
+      </div>
+    `;
+  });
+
+  const history = document.getElementById("historySelect");
+  history.innerHTML = "";
+  Object.keys(data.months).forEach(m => {
+    const o = document.createElement("option");
+    o.textContent = m;
+    history.appendChild(o);
+  });
+}
+
+function loadHistory() {
+  const m = historySelect.value;
+  alert("Histórico de " + m + " cargado");
+}
+
+render();
+</script>
+</body>
+</html>
