@@ -1,247 +1,214 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mis Gastos</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Control de Gastos</title>
 
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#E9F7EF">
+  <!-- React -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
-<style>
-:root{
-  --bg:#E9F7EF;
-  --card:#FFFFFF;
-  --primary:#2ECC71;
-  --danger:#F1948A;
-  --text:#1C2833;
-  --muted:#7B8A8B;
-}
-body{
-  margin:0;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  background:var(--bg);
-  color:var(--text);
-}
-.screen{display:none;padding-bottom:90px;}
-.screen.active{display:block;}
-header{
-  padding:20px;
-  text-align:center;
-  font-weight:600;
-}
-.card{
-  background:var(--card);
-  margin:12px;
-  padding:16px;
-  border-radius:20px;
-  box-shadow:0 10px 25px rgba(0,0,0,.06);
-}
-.balance{font-size:32px;font-weight:700;}
-.row{display:flex;justify-content:space-between;align-items:center;}
-.small{font-size:13px;color:var(--muted);}
-.category{margin-top:14px;}
-.progress{
-  height:7px;
-  background:#D5F5E3;
-  border-radius:6px;
-  overflow:hidden;
-  margin-top:4px;
-}
-.progress div{height:100%;background:var(--primary);}
-.fab{
-  position:fixed;
-  bottom:80px;
-  right:20px;
-  width:56px;
-  height:56px;
-  border-radius:50%;
-  background:var(--primary);
-  color:white;
-  font-size:30px;
-  border:none;
-}
-nav{
-  position:fixed;
-  bottom:0;
-  left:0;
-  right:0;
-  height:70px;
-  background:white;
-  display:flex;
-  border-top:1px solid #E5E7EB;
-}
-nav button{
-  flex:1;
-  background:none;
-  border:none;
-  font-size:12px;
-  color:var(--muted);
-}
-nav button.active{color:var(--primary);font-weight:600;}
-input,select,button{
-  width:100%;
-  padding:10px;
-  margin-top:10px;
-  border-radius:14px;
-  border:1px solid #D5DBDB;
-  font-size:15px;
-}
-</style>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f6f7fb;
+      color: #333;
+    }
+    header {
+      padding: 16px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 18px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 16px;
+      margin: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .balance {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+    }
+    .category {
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #b9c6ff;
+      color: white;
+      font-size: 32px;
+      border: none;
+    }
+    .modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      width: 90%;
+      max-width: 360px;
+    }
+    input, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
+    }
+    button {
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: none;
+    }
+  </style>
 </head>
-
 <body>
+  <div id="root"></div>
 
-<!-- HOME -->
-<div class="screen active" id="home">
-  <header id="month"></header>
+  <script type="text/babel">
 
-  <div class="card">
-    <div class="small">Saldo disponible</div>
-    <div class="balance" id="available">0 €</div>
-    <div class="row">
-      <div>
-        <div class="small">Ingresos</div>
-        <strong id="income">0 €</strong>
-      </div>
-      <div>
-        <div class="small">Gastos</div>
-        <strong id="expenses">0 €</strong>
-      </div>
-    </div>
-  </div>
+    function AddTransactionModal({ type, categories, onAdd, onClose }) {
+      const [amount, setAmount] = React.useState("");
+      const [category, setCategory] = React.useState(categories[0] || "");
+      const [note, setNote] = React.useState("");
 
-  <div class="card">
-    <strong>Categorías</strong>
-    <div id="categoryList"></div>
-  </div>
-</div>
+      function handleSave() {
+        if (!amount) return;
 
-<!-- ADD -->
-<div class="screen" id="add">
-  <header>Añadir movimiento</header>
-  <div class="card">
-    <input type="number" id="amount" placeholder="Cantidad (€)">
-    <select id="type">
-      <option value="income">Ingreso</option>
-      <option value="expense">Gasto</option>
-    </select>
-    <select id="category"></select>
-    <button id="saveBtn">Guardar</button>
-  </div>
-</div>
+        if (type === "income") {
+          onAdd({
+            type: "income",
+            amount: Number(amount),
+            date: new Date()
+          });
+        } else {
+          onAdd({
+            type: "expense",
+            amount: Number(amount),
+            category,
+            note,
+            date: new Date()
+          });
+        }
+        onClose();
+      }
 
-<!-- SETTINGS -->
-<div class="screen" id="settings">
-  <header>Ajustes</header>
+      return (
+        <div className="modal">
+          <div className="modal-card">
+            <h3>{type === "income" ? "Añadir ingreso" : "Añadir gasto"}</h3>
 
-  <div class="card">
-    <strong>Presupuestos por categoría</strong>
-    <div id="budgetList"></div>
-  </div>
+            <input
+              type="number"
+              placeholder="Cantidad"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+            />
 
-  <div class="card">
-    <strong>Nueva categoría</strong>
-    <input id="newCategory" placeholder="Nombre de la categoría">
-    <button onclick="addCategory()">Añadir categoría</button>
-  </div>
-</div>
+            {type === "expense" && (
+              <select value={category} onChange={e => setCategory(e.target.value)}>
+                {categories.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            )}
 
-<button class="fab" onclick="show('add')">+</button>
+            <input
+              type="text"
+              placeholder="Nota (opcional)"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+            />
 
-<nav>
-  <button onclick="show('home')" class="active">Inicio</button>
-  <button onclick="show('settings')">Ajustes</button>
-</nav>
-
-<script>
-// FECHA
-const monthEl = document.getElementById("month");
-monthEl.textContent = new Date().toLocaleString("es",{month:"long",year:"numeric"});
-
-// REFERENCIAS
-const incomeEl = document.getElementById("income");
-const expensesEl = document.getElementById("expenses");
-const availableEl = document.getElementById("available");
-const categoryList = document.getElementById("categoryList");
-const categorySelect = document.getElementById("category");
-const budgetList = document.getElementById("budgetList");
-
-// DATOS (AMPLIADOS SIN ROMPER)
-let data = JSON.parse(localStorage.getItem("flowfy")) || {
-  income: 0,
-  expenses: 0,
-  categories: {
-    "Alimentación": { budget: 0, spent: 0 },
-    "Ocio": { budget: 0, spent: 0 },
-    "Salud": { budget: 0, spent: 0 }
-  }
-};
-
-function save(){
-  localStorage.setItem("flowfy", JSON.stringify(data));
-  render();
-}
-
-function show(id){
-  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-}
-
-function render(){
-  incomeEl.textContent = data.income + " €";
-  expensesEl.textContent = data.expenses + " €";
-  availableEl.textContent = (data.income - data.expenses) + " €";
-
-  // Categorías HOME
-  categoryList.innerHTML="";
-  categorySelect.innerHTML="";
-  budgetList.innerHTML="";
-
-  Object.keys(data.categories).forEach(cat=>{
-    const c = data.categories[cat];
-
-    // Home
-    categoryList.innerHTML += `
-      <div class="category">
-        <div class="row">
-          <strong>${cat}</strong>
-          <span class="small">${c.spent} / ${c.budget} €</span>
+            <div className="modal-actions">
+              <button onClick={onClose}>Cancelar</button>
+              <button onClick={handleSave}>Guardar</button>
+            </div>
+          </div>
         </div>
-        <div class="progress">
-          <div style="width:${c.budget?Math.min(c.spent/c.budget*100,100):0}%"></div>
-        </div>
-      </div>`;
+      );
+    }
 
-    // Add
-    const opt=document.createElement("option");
-    opt.textContent=cat;
-    categorySelect.appendChild(opt);
+    function App() {
+      const initialCategories = [
+        "Suscripciones","Salud","Belleza","Libros","Regalos",
+        "Alimentación","Viajes","Restaurantes","Lego","Ocio"
+      ];
 
-    // Settings
-    budgetList.innerHTML += `
-      <div class="row" style="margin-top:10px">
-        <span>${cat}</span>
-        <input type="number" value="${c.budget}" 
-          onchange="data.categories['${cat}'].budget=Number(this.value);save()"
-          style="width:90px">
-      </div>`;
-  });
-}
+      const [transactions, setTransactions] = React.useState([]);
+      const [modalType, setModalType] = React.useState(null);
 
-function addCategory(){
-  const name=document.getElementById("newCategory").value.trim();
-  if(!name || data.categories[name]) return;
-  data.categories[name]={budget:0,spent:0};
-  document.getElementById("newCategory").value="";
-  save();
-}
+      const income = transactions
+        .filter(t => t.type === "income")
+        .reduce((s, t) => s + t.amount, 0);
 
-render();
-</script>
+      const expenses = transactions
+        .filter(t => t.type === "expense")
+        .reduce((s, t) => s + t.amount, 0);
 
+      return (
+        <>
+          <header>
+            {new Date().toLocaleDateString("es-ES", { month: "long", year: "numeric" })}
+          </header>
+
+          <div className="card">
+            <div className="balance">Saldo disponible: {income - expenses} €</div>
+            <div className="row">
+              <div>Ingresos: {income} €</div>
+              <div>Gastos: {expenses} €</div>
+            </div>
+          </div>
+
+          <button className="fab" onClick={() => setModalType("income")}>+</button>
+          <button className="fab" style={{ bottom: 90 }} onClick={() => setModalType("expense")}>–</button>
+
+          {modalType && (
+            <AddTransactionModal
+              type={modalType}
+              categories={initialCategories}
+              onAdd={(t) => setTransactions([...transactions, t])}
+              onClose={() => setModalType(null)}
+            />
+          )}
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+
+  </script>
 </body>
 </html>
+
+
 
 
 
