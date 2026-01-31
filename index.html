@@ -46,9 +46,7 @@ header{
   justify-content:space-between;
 }
 .small{font-size:13px;color:var(--muted);}
-.category{
-  margin-top:12px;
-}
+.category{margin-top:12px;}
 .progress{
   height:7px;
   background:#D5F5E3;
@@ -96,15 +94,17 @@ nav button.active{
 input,select,button{
   width:100%;
   padding:10px;
-  margin-top:8px;
+  margin-top:10px;
   border-radius:14px;
   border:1px solid #D5DBDB;
+  font-size:15px;
 }
 </style>
 </head>
 
 <body>
 
+<!-- INICIO -->
 <div class="screen active" id="home">
   <header id="month"></header>
 
@@ -127,27 +127,46 @@ input,select,button{
     <strong>Últimos movimientos</strong>
     <p class="small" id="last">Sin movimientos</p>
   </div>
+</div>
 
+<!-- AÑADIR -->
+<div class="screen" id="add">
+  <header>Añadir movimiento</header>
   <div class="card">
-    <strong>Categorías</strong>
-    <div id="categories"></div>
+    <input type="number" id="amount" placeholder="Cantidad €">
+    <select id="type">
+      <option value="income">Ingreso</option>
+      <option value="expense">Gasto</option>
+    </select>
+    <select id="category">
+      <option>Alimentación</option>
+      <option>Restaurantes</option>
+      <option>Ocio</option>
+      <option>Viajes</option>
+      <option>Salud</option>
+      <option>Suscripciones</option>
+    </select>
+    <button onclick="addMove()">Guardar</button>
   </div>
 </div>
 
+<!-- ESTADÍSTICAS -->
 <div class="screen" id="stats">
   <header>Estadísticas</header>
   <div class="card">
-    <p class="small">Gráficos y análisis mensual (premium)</p>
+    <p class="small">Próximamente gráficos y análisis</p>
   </div>
 </div>
 
+<!-- AHORRO -->
 <div class="screen" id="savings">
   <header>Ahorro</header>
   <div class="card">
-    <p class="small">Objetivos de ahorro y progreso</p>
+    <p class="small">Objetivos de ahorro</p>
   </div>
 </div>
 
+<!-- AJUSTES -->
 <div class="screen" id="settings">
   <header>Ajustes</header>
   <div class="card">
@@ -165,16 +184,28 @@ input,select,button{
 </nav>
 
 <script>
+const month=document.getElementById("month");
 const now=new Date();
 month.textContent=now.toLocaleString("es",{month:"long",year:"numeric"});
+
+let data=JSON.parse(localStorage.getItem("flowfyData"))||{
+  income:0,
+  expenses:0,
+  last:null
+};
+
+function save(){
+  localStorage.setItem("flowfyData",JSON.stringify(data));
+  render();
+}
 
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
-</script>
-</body>
-</html>
+
+function
+
 
 
 
