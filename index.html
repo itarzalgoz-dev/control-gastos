@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Control de Gastos</title>
 
-  <!-- React -->
-  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <!-- React + ReactDOM (compatibles con Safari iOS) -->
+  <script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 
   <style>
@@ -31,16 +31,13 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
     .balance {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: bold;
       margin-bottom: 8px;
     }
     .row {
       display: flex;
       justify-content: space-between;
-    }
-    .category {
-      margin-top: 10px;
       font-size: 14px;
     }
     .fab {
@@ -55,6 +52,10 @@
       font-size: 32px;
       border: none;
     }
+    .fab.expense {
+      bottom: 90px;
+      background: #ffb9c6;
+    }
     .modal {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -62,6 +63,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      z-index: 10;
     }
     .modal-card {
       background: white;
@@ -76,6 +78,7 @@
       margin-top: 10px;
       border-radius: 10px;
       border: 1px solid #ddd;
+      font-size: 14px;
     }
     .modal-actions {
       display: flex;
@@ -86,6 +89,7 @@
       padding: 10px 16px;
       border-radius: 10px;
       border: none;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -96,26 +100,15 @@
 
     function AddTransactionModal({ type, categories, onAdd, onClose }) {
       const [amount, setAmount] = React.useState("");
-      const [category, setCategory] = React.useState(categories[0] || "");
-      const [note, setNote] = React.useState("");
+      const [category, setCategory] = React.useState(categories[0]);
 
-      function handleSave() {
+      function save() {
         if (!amount) return;
 
         if (type === "income") {
-          onAdd({
-            type: "income",
-            amount: Number(amount),
-            date: new Date()
-          });
+          onAdd({ type: "income", amount: Number(amount), date: new Date() });
         } else {
-          onAdd({
-            type: "expense",
-            amount: Number(amount),
-            category,
-            note,
-            date: new Date()
-          });
+          onAdd({ type: "expense", amount: Number(amount), category, date: new Date() });
         }
         onClose();
       }
@@ -140,16 +133,9 @@
               </select>
             )}
 
-            <input
-              type="text"
-              placeholder="Nota (opcional)"
-              value={note}
-              onChange={e => setNote(e.target.value)}
-            />
-
             <div className="modal-actions">
               <button onClick={onClose}>Cancelar</button>
-              <button onClick={handleSave}>Guardar</button>
+              <button onClick={save}>Guardar</button>
             </div>
           </div>
         </div>
@@ -157,21 +143,12 @@
     }
 
     function App() {
-      const initialCategories = [
-        "Suscripciones","Salud","Belleza","Libros","Regalos",
-        "Alimentación","Viajes","Restaurantes","Lego","Ocio"
-      ];
-
+      const categories = ["Suscripciones","Salud","Belleza","Libros","Regalos","Alimentación","Viajes","Restaurantes","Lego","Ocio"];
       const [transactions, setTransactions] = React.useState([]);
-      const [modalType, setModalType] = React.useState(null);
+      const [modal, setModal] = React.useState(null);
 
-      const income = transactions
-        .filter(t => t.type === "income")
-        .reduce((s, t) => s + t.amount, 0);
-
-      const expenses = transactions
-        .filter(t => t.type === "expense")
-        .reduce((s, t) => s + t.amount, 0);
+      const income = transactions.filter(t => t.type === "income").reduce((s,t)=>s+t.amount,0);
+      const expenses = transactions.filter(t => t.type === "expense").reduce((s,t)=>s+t.amount,0);
 
       return (
         <>
@@ -187,26 +164,28 @@
             </div>
           </div>
 
-          <button className="fab" onClick={() => setModalType("income")}>+</button>
-          <button className="fab" style={{ bottom: 90 }} onClick={() => setModalType("expense")}>–</button>
+          <button className="fab" onClick={() => setModal("income")}>+</button>
+          <button className="fab expense" onClick={() => setModal("expense")}>–</button>
 
-          {modalType && (
+          {modal && (
             <AddTransactionModal
-              type={modalType}
-              categories={initialCategories}
-              onAdd={(t) => setTransactions([...transactions, t])}
-              onClose={() => setModalType(null)}
+              type={modal}
+              categories={categories}
+              onAdd={t => setTransactions([...transactions, t])}
+              onClose={() => setModal(null)}
             />
           )}
         </>
       );
     }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+    ReactDOM.render(<App />, document.getElementById("root"));
 
   </script>
 </body>
 </html>
+
+
 
 
 
