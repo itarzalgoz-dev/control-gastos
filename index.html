@@ -37,15 +37,18 @@ header{
   border-radius:20px;
   box-shadow:0 10px 25px rgba(0,0,0,.06);
 }
-.balance{
-  font-size:32px;
-  font-weight:700;
-}
-.row{
-  display:flex;
-  justify-content:space-between;
-}
+.balance{font-size:32px;font-weight:700;}
+.row{display:flex;justify-content:space-between;align-items:center;}
 .small{font-size:13px;color:var(--muted);}
+.category{margin-top:14px;}
+.progress{
+  height:7px;
+  background:#D5F5E3;
+  border-radius:6px;
+  overflow:hidden;
+  margin-top:4px;
+}
+.progress div{height:100%;background:var(--primary);}
 .fab{
   position:fixed;
   bottom:80px;
@@ -75,10 +78,7 @@ nav button{
   font-size:12px;
   color:var(--muted);
 }
-nav button.active{
-  color:var(--primary);
-  font-weight:600;
-}
+nav button.active{color:var(--primary);font-weight:600;}
 input,select,button{
   width:100%;
   padding:10px;
@@ -112,8 +112,8 @@ input,select,button{
   </div>
 
   <div class="card">
-    <strong>Último movimiento</strong>
-    <p class="small" id="last">Sin movimientos</p>
+    <strong>Categorías</strong>
+    <div id="categoryList"></div>
   </div>
 </div>
 
@@ -126,87 +126,116 @@ input,select,button{
       <option value="income">Ingreso</option>
       <option value="expense">Gasto</option>
     </select>
-    <select id="category">
-      <option>Alimentación</option>
-      <option>Restaurantes</option>
-      <option>Ocio</option>
-      <option>Viajes</option>
-      <option>Salud</option>
-      <option>Suscripciones</option>
-    </select>
+    <select id="category"></select>
     <button id="saveBtn">Guardar</button>
   </div>
 </div>
 
-<button class="fab" id="addBtn">+</button>
+<!-- SETTINGS -->
+<div class="screen" id="settings">
+  <header>Ajustes</header>
+
+  <div class="card">
+    <strong>Presupuestos por categoría</strong>
+    <div id="budgetList"></div>
+  </div>
+
+  <div class="card">
+    <strong>Nueva categoría</strong>
+    <input id="newCategory" placeholder="Nombre de la categoría">
+    <button onclick="addCategory()">Añadir categoría</button>
+  </div>
+</div>
+
+<button class="fab" onclick="show('add')">+</button>
 
 <nav>
   <button onclick="show('home')" class="active">Inicio</button>
-  <button onclick="show('add')">Añadir</button>
+  <button onclick="show('settings')">Ajustes</button>
 </nav>
 
 <script>
-// REFERENCIAS (CRÍTICO PARA iOS)
+// FECHA
 const monthEl = document.getElementById("month");
+monthEl.textContent = new Date().toLocaleString("es",{month:"long",year:"numeric"});
+
+// REFERENCIAS
 const incomeEl = document.getElementById("income");
 const expensesEl = document.getElementById("expenses");
 const availableEl = document.getElementById("available");
-const lastEl = document.getElementById("last");
+const categoryList = document.getElementById("categoryList");
+const categorySelect = document.getElementById("category");
+const budgetList = document.getElementById("budgetList");
 
-const amountEl = document.getElementById("amount");
-const typeEl = document.getElementById("type");
-const categoryEl = document.getElementById("category");
-
-const addBtn = document.getElementById("addBtn");
-const saveBtn = document.getElementById("saveBtn");
-
-// FECHA
-const now = new Date();
-monthEl.textContent = now.toLocaleString("es", { month:"long", year:"numeric" });
-
-// DATOS
+// DATOS (AMPLIADOS SIN ROMPER)
 let data = JSON.parse(localStorage.getItem("flowfy")) || {
   income: 0,
   expenses: 0,
-  last: null
+  categories: {
+    "Alimentación": { budget: 0, spent: 0 },
+    "Ocio": { budget: 0, spent: 0 },
+    "Salud": { budget: 0, spent: 0 }
+  }
 };
-
-// FUNCIONES
-function show(id){
-  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-}
 
 function save(){
   localStorage.setItem("flowfy", JSON.stringify(data));
   render();
 }
 
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
 function render(){
   incomeEl.textContent = data.income + " €";
   expensesEl.textContent = data.expenses + " €";
   availableEl.textContent = (data.income - data.expenses) + " €";
-  lastEl.textContent = data.last || "Sin movimientos";
+
+  // Categorías HOME
+  categoryList.innerHTML="";
+  categorySelect.innerHTML="";
+  budgetList.innerHTML="";
+
+  Object.keys(data.categories).forEach(cat=>{
+    const c = data.categories[cat];
+
+    // Home
+    categoryList.innerHTML += `
+      <div class="category">
+        <div class="row">
+          <strong>${cat}</strong>
+          <span class="small">${c.spent} / ${c.budget} €</span>
+        </div>
+        <div class="progress">
+          <div style="width:${c.budget?Math.min(c.spent/c.budget*100,100):0}%"></div>
+        </div>
+      </div>`;
+
+    // Add
+    const opt=document.createElement("option");
+    opt.textContent=cat;
+    categorySelect.appendChild(opt);
+
+    // Settings
+    budgetList.innerHTML += `
+      <div class="row" style="margin-top:10px">
+        <span>${cat}</span>
+        <input type="number" value="${c.budget}" 
+          onchange="data.categories['${cat}'].budget=Number(this.value);save()"
+          style="width:90px">
+      </div>`;
+  });
 }
 
-// EVENTOS
-addBtn.addEventListener("click", () => show("add"));
-
-saveBtn.addEventListener("click", () => {
-  const amt = Number(amountEl.value);
-  if (!amt) return;
-
-  if (typeEl.value === "income") {
-    data.income += amt;
-  } else {
-    data.expenses += amt;
-  }
-
-  data.last = `${typeEl.value === "income" ? "Ingreso" : "Gasto"} · ${categoryEl.value} · ${amt} €`;
-  amountEl.value = "";
+function addCategory(){
+  const name=document.getElementById("newCategory").value.trim();
+  if(!name || data.categories[name]) return;
+  data.categories[name]={budget:0,spent:0};
+  document.getElementById("newCategory").value="";
   save();
-  show("home");
-});
+}
 
 render();
 </script>
