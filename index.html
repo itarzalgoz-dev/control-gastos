@@ -3,69 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gastos</title>
+<title>Mis Gastos</title>
 
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#9AA7FF">
+<meta name="theme-color" content="#E9F7EF">
 
 <style>
 :root{
-  --primary:#9AA7FF;
-  --bg:#F4F6FB;
+  --bg:#E9F7EF;
   --card:#FFFFFF;
-  --text:#1F2937;
-  --muted:#6B7280;
-  --danger:#FCA5A5;
-  --warn:#FCD34D;
-  --ok:#86EFAC;
+  --primary:#2ECC71;
+  --danger:#F1948A;
+  --text:#1C2833;
+  --muted:#7B8A8B;
 }
 body{
   margin:0;
-  background:var(--bg);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:var(--bg);
   color:var(--text);
 }
 .screen{display:none;padding-bottom:90px;}
 .screen.active{display:block;}
 header{
   padding:20px;
-}
-.month{
-  font-size:20px;
+  text-align:center;
   font-weight:600;
 }
 .card{
   background:var(--card);
-  border-radius:22px;
-  padding:18px;
   margin:12px;
-  box-shadow:0 12px 30px rgba(0,0,0,.05);
+  padding:16px;
+  border-radius:20px;
+  box-shadow:0 10px 25px rgba(0,0,0,.06);
 }
 .balance{
-  font-size:34px;
+  font-size:32px;
   font-weight:700;
-  margin:10px 0;
 }
 .row{
   display:flex;
   justify-content:space-between;
 }
-.small{
-  font-size:14px;
-  color:var(--muted);
+.small{font-size:13px;color:var(--muted);}
+.category{
+  margin-top:12px;
 }
 .progress{
-  height:8px;
-  background:#E5E7EB;
+  height:7px;
+  background:#D5F5E3;
   border-radius:6px;
   overflow:hidden;
-  margin-top:6px;
+  margin-top:4px;
 }
 .progress div{
   height:100%;
-}
-.category{
-  margin-top:14px;
+  background:var(--primary);
 }
 .fab{
   position:fixed;
@@ -76,7 +69,7 @@ header{
   border-radius:50%;
   background:var(--primary);
   color:white;
-  font-size:32px;
+  font-size:30px;
   border:none;
 }
 nav{
@@ -105,19 +98,15 @@ input,select,button{
   padding:10px;
   margin-top:8px;
   border-radius:14px;
-  border:1px solid #E5E7EB;
-  font-size:15px;
+  border:1px solid #D5DBDB;
 }
 </style>
 </head>
 
 <body>
 
-<!-- INICIO -->
 <div class="screen active" id="home">
-  <header>
-    <div class="month" id="monthLabel"></div>
-  </header>
+  <header id="month"></header>
 
   <div class="card">
     <div class="small">Saldo disponible</div>
@@ -125,53 +114,44 @@ input,select,button{
     <div class="row">
       <div>
         <div class="small">Ingresos</div>
-        <strong id="incomeView">0 €</strong>
+        <strong id="income">0 €</strong>
       </div>
       <div>
         <div class="small">Gastos</div>
-        <strong id="expenseView">0 €</strong>
+        <strong id="expenses">0 €</strong>
       </div>
     </div>
   </div>
 
   <div class="card">
     <strong>Últimos movimientos</strong>
-    <p id="lastMove" class="small">Sin movimientos</p>
+    <p class="small" id="last">Sin movimientos</p>
   </div>
 
   <div class="card">
     <strong>Categorías</strong>
-    <div id="categoryList"></div>
+    <div id="categories"></div>
   </div>
 </div>
 
-<!-- AÑADIR -->
-<div class="screen" id="add">
-  <header><strong>Añadir movimiento</strong></header>
-  <div class="card">
-    <input type="number" id="amount" placeholder="Cantidad">
-    <select id="type">
-      <option value="expense">Gasto</option>
-      <option value="income">Ingreso</option>
-    </select>
-    <select id="category"></select>
-    <button onclick="addMove()">Guardar</button>
-  </div>
-</div>
-
-<!-- ESTADÍSTICAS -->
 <div class="screen" id="stats">
-  <header><strong>Estadísticas</strong></header>
+  <header>Estadísticas</header>
   <div class="card">
-    <p class="small">Próximamente: gráficos avanzados</p>
+    <p class="small">Gráficos y análisis mensual (premium)</p>
   </div>
 </div>
 
-<!-- AJUSTES -->
-<div class="screen" id="settings">
-  <header><strong>Ajustes</strong></header>
+<div class="screen" id="savings">
+  <header>Ahorro</header>
   <div class="card">
-    <p class="small">Presupuestos y colores (siguiente fase)</p>
+    <p class="small">Objetivos de ahorro y progreso</p>
+  </div>
+</div>
+
+<div class="screen" id="settings">
+  <header>Ajustes</header>
+  <div class="card">
+    <p class="small">Presupuestos y colores pastel</p>
   </div>
 </div>
 
@@ -180,81 +160,23 @@ input,select,button{
 <nav>
   <button onclick="show('stats')">Estadísticas</button>
   <button class="active" onclick="show('home')">Inicio</button>
-  <button onclick="show('add')">Ahorro</button>
+  <button onclick="show('savings')">Ahorro</button>
   <button onclick="show('settings')">Ajustes</button>
 </nav>
 
 <script>
 const now=new Date();
-const monthKey=now.toISOString().slice(0,7);
-monthLabel.textContent=now.toLocaleString("es",{month:"long",year:"numeric"});
-
-let data=JSON.parse(localStorage.getItem("flowfyLike"))||{
-  months:{},
-  categories:["Suscripciones","Salud","Belleza","Libros","Regalos","Alimentación","Viajes","Restaurantes","Lego","Ocio"],
-  last:null
-};
-
-if(!data.months[monthKey]){
-  data.months[monthKey]={income:0,categories:{}};
-  data.categories.forEach(c=>data.months[monthKey].categories[c]={budget:0,spent:0});
-}
-
-function save(){localStorage.setItem("flowfyLike",JSON.stringify(data));render();}
+month.textContent=now.toLocaleString("es",{month:"long",year:"numeric"});
 
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
-  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
-  event.target.classList.add("active");
 }
-
-function addMove(){
-  const a=Number(amount.value);
-  const t=type.value;
-  const c=category.value;
-  if(t==="income") data.months[monthKey].income+=a;
-  else data.months[monthKey].categories[c].spent+=a;
-  data.last={type:t,cat:c,amt:a};
-  save();
-  show('home');
-}
-
-function render(){
-  const m=data.months[monthKey];
-  const spent=Object.values(m.categories).reduce((s,c)=>s+c.spent,0);
-  incomeView.textContent=m.income+" €";
-  expenseView.textContent=spent+" €";
-  available.textContent=(m.income-spent)+" €";
-
-  category.innerHTML="";
-  data.categories.forEach(c=>{
-    const o=document.createElement("option");o.textContent=c;category.appendChild(o);
-  });
-
-  lastMove.textContent=data.last
-    ? `${data.last.cat}: ${data.last.amt} €`
-    : "Sin movimientos";
-
-  categoryList.innerHTML="";
-  data.categories.forEach(cat=>{
-    const c=m.categories[cat];
-    const pct=c.budget?Math.min(c.spent/c.budget*100,100):0;
-    const color=pct>90?"var(--danger)":pct>70?"var(--warn)":"var(--ok)";
-    categoryList.innerHTML+=`
-      <div class="category">
-        <div class="row">
-          <strong>${cat}</strong>
-          <span class="small">${c.spent} / ${c.budget} €</span>
-        </div>
-        <div class="progress"><div style="width:${pct}%;background:${color}"></div></div>
-      </div>`;
-  });
-}
-render();
 </script>
 </body>
 </html>
+
+
 
 
 
