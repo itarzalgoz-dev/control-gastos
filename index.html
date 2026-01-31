@@ -3,182 +3,225 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mi Control de Gastos</title>
+<title>Mis Gastos</title>
 
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4CAF50">
+<meta name="theme-color" content="#7C7CFF">
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f2f4f7;
-  margin: 0;
-  padding: 15px;
+:root{
+  --primary:#7C7CFF;
+  --bg:#F4F5FA;
+  --card:#FFFFFF;
+  --text:#1F2937;
+  --muted:#6B7280;
 }
-h1 { text-align: center; }
-.card {
-  background: white;
-  padding: 15px;
-  border-radius: 12px;
-  margin-bottom: 15px;
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 }
-input, select, button {
-  width: 100%;
-  padding: 8px;
-  margin-top: 6px;
+.screen{display:none;padding-bottom:80px;}
+.screen.active{display:block;}
+header{padding:20px;}
+h1{margin:0;}
+.card{
+  background:var(--card);
+  border-radius:18px;
+  padding:16px;
+  margin:12px;
+  box-shadow:0 10px 25px rgba(0,0,0,.05);
 }
-button {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 8px;
+.big{
+  font-size:32px;
+  font-weight:700;
 }
-.progress {
-  background: #ddd;
-  border-radius: 10px;
-  overflow: hidden;
+.muted{color:var(--muted);}
+.progress{
+  height:8px;
+  background:#E5E7EB;
+  border-radius:6px;
+  overflow:hidden;
+  margin-top:6px;
 }
-.progress div {
-  height: 10px;
-  background: #4CAF50;
+.progress div{
+  height:100%;
+  background:var(--primary);
 }
-.warning { background: #f44336; }
+input,select,button{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  border-radius:12px;
+  border:1px solid #E5E7EB;
+  font-size:15px;
+}
+button{
+  background:var(--primary);
+  color:white;
+  border:none;
+  font-weight:600;
+}
+nav{
+  position:fixed;
+  bottom:0;
+  left:0;
+  right:0;
+  height:60px;
+  background:white;
+  display:flex;
+  border-top:1px solid #E5E7EB;
+}
+nav button{
+  flex:1;
+  background:none;
+  color:var(--muted);
+}
+nav button.active{
+  color:var(--primary);
+  font-weight:700;
+}
 </style>
 </head>
 
 <body>
-<h1>💸 Control de Gastos</h1>
 
-<div class="card">
-<h3>Mes actual</h3>
-<p id="currentMonth"></p>
+<!-- 🏠 HOME -->
+<div class="screen active" id="home">
+  <header>
+    <h1>Este mes</h1>
+    <div class="big" id="available">0 €</div>
+    <div class="muted">Disponible</div>
+  </header>
+
+  <div class="card">
+    <p>Ingresos: <strong id="incomeView">0 €</strong></p>
+    <p>Gastos: <strong id="expenseView">0 €</strong></p>
+  </div>
+
+  <div id="categoryList"></div>
 </div>
 
-<div class="card">
-<h3>Ingreso del mes</h3>
-<input type="number" id="incomeInput" placeholder="Ingreso">
-<button onclick="setIncome()">Guardar ingreso</button>
+<!-- ➕ MOVIMIENTOS -->
+<div class="screen" id="add">
+  <header><h1>Movimiento</h1></header>
+
+  <div class="card">
+    <h3>Ingreso</h3>
+    <input type="number" id="incomeInput" placeholder="Cantidad">
+    <button onclick="setIncome()">Guardar ingreso</button>
+  </div>
+
+  <div class="card">
+    <h3>Gasto</h3>
+    <input type="number" id="expenseAmount" placeholder="Cantidad">
+    <select id="expenseCategory"></select>
+    <button onclick="addExpense()">Añadir gasto</button>
+  </div>
+
+  <div class="card">
+    <h3>Nueva categoría</h3>
+    <input type="text" id="newCategory" placeholder="Nombre">
+    <button onclick="addCategory()">Crear</button>
+  </div>
 </div>
 
-<div class="card">
-<h3>Añadir gasto</h3>
-<input type="number" id="expenseAmount" placeholder="Cantidad">
-<select id="expenseCategory"></select>
-<button onclick="addExpense()">Añadir gasto</button>
+<!-- 📊 HISTÓRICO -->
+<div class="screen" id="history">
+  <header><h1>Histórico</h1></header>
+  <div class="card">
+    <select id="historySelect" onchange="renderHistory()"></select>
+    <div id="historyContent"></div>
+  </div>
 </div>
 
-<div class="card">
-<h3>Nueva categoría</h3>
-<input type="text" id="newCategory" placeholder="Nombre categoría">
-<button onclick="addCategory()">Crear categoría</button>
-</div>
-
-<div id="categories"></div>
-
-<div class="card">
-<h3>📊 Histórico</h3>
-<select id="historySelect" onchange="loadHistory()"></select>
-</div>
+<!-- NAV -->
+<nav>
+  <button class="active" onclick="show('home')">Inicio</button>
+  <button onclick="show('add')">+</button>
+  <button onclick="show('history')">Histórico</button>
+</nav>
 
 <script>
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
-}
+const monthKey=new Date().toISOString().slice(0,7);
 
-const now = new Date();
-const monthKey = now.toISOString().slice(0,7);
-document.getElementById("currentMonth").textContent = monthKey;
-
-let data = JSON.parse(localStorage.getItem("financeApp")) || {
-  months: {},
-  categoriesList: [
-    "Suscripciones","Salud","Belleza","Libros","Regalos",
-    "Alimentación","Viajes","Restaurantes","Lego","Ocio"
-  ]
+let data=JSON.parse(localStorage.getItem("financeApp"))||{
+  months:{},
+  categoriesList:["Suscripciones","Salud","Belleza","Libros","Regalos","Alimentación","Viajes","Restaurantes","Lego","Ocio"]
 };
 
-if (!data.months[monthKey]) {
-  data.months[monthKey] = { income: 0, categories: {} };
-  data.categoriesList.forEach(c => {
-    data.months[monthKey].categories[c] = { budget: 0, spent: 0 };
-  });
+if(!data.months[monthKey]){
+  data.months[monthKey]={income:0,categories:{}};
+  data.categoriesList.forEach(c=>data.months[monthKey].categories[c]={budget:0,spent:0});
 }
 
-const catSelect = document.getElementById("expenseCategory");
-function updateCategorySelect() {
-  catSelect.innerHTML = "";
-  data.categoriesList.forEach(c => {
-    const o = document.createElement("option");
-    o.textContent = c;
-    catSelect.appendChild(o);
-  });
+function save(){localStorage.setItem("financeApp",JSON.stringify(data));render();}
+
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+  event.target.classList.add("active");
 }
 
-function save() {
-  localStorage.setItem("financeApp", JSON.stringify(data));
-  render();
+function setIncome(){data.months[monthKey].income=Number(incomeInput.value);save();}
+function addExpense(){
+  const a=Number(expenseAmount.value);
+  const c=expenseCategory.value;
+  data.months[monthKey].categories[c].spent+=a;
+  save();
 }
-
-function setIncome() {
-  data.months[monthKey].income = Number(incomeInput.value);
+function addCategory(){
+  const n=newCategory.value.trim();
+  if(!n||data.categoriesList.includes(n))return;
+  data.categoriesList.push(n);
+  Object.values(data.months).forEach(m=>m.categories[n]={budget:0,spent:0});
   save();
 }
 
-function addExpense() {
-  const amount = Number(expenseAmount.value);
-  const cat = catSelect.value;
-  data.months[monthKey].categories[cat].spent += amount;
-  save();
-}
+function render(){
+  const m=data.months[monthKey];
+  const spent=Object.values(m.categories).reduce((a,c)=>a+c.spent,0);
+  incomeView.textContent=m.income+" €";
+  expenseView.textContent=spent+" €";
+  available.textContent=(m.income-spent)+" €";
 
-function addCategory() {
-  const name = newCategory.value.trim();
-  if (!name || data.categoriesList.includes(name)) return;
-  data.categoriesList.push(name);
-  Object.values(data.months).forEach(m => {
-    m.categories[name] = { budget: 0, spent: 0 };
+  expenseCategory.innerHTML="";
+  data.categoriesList.forEach(c=>{
+    const o=document.createElement("option");o.textContent=c;expenseCategory.appendChild(o);
   });
-  save();
-}
 
-function render() {
-  updateCategorySelect();
-  const container = document.getElementById("categories");
-  container.innerHTML = "";
-  const month = data.months[monthKey];
-
-  data.categoriesList.forEach(cat => {
-    const c = month.categories[cat];
-    const pct = c.budget ? (c.spent / c.budget) * 100 : 0;
-    container.innerHTML += `
+  categoryList.innerHTML="";
+  data.categoriesList.forEach(cat=>{
+    const c=m.categories[cat];
+    const pct=c.budget?Math.min(c.spent/c.budget*100,100):0;
+    categoryList.innerHTML+=`
       <div class="card">
-        <h4>${cat}</h4>
+        <strong>${cat}</strong>
+        <div class="muted">${c.spent} € / ${c.budget} €</div>
         <input type="number" placeholder="Presupuesto"
           value="${c.budget}"
           onchange="data.months['${monthKey}'].categories['${cat}'].budget=this.value; save();">
-        <p>Gastado: ${c.spent.toFixed(2)} €</p>
-        <div class="progress">
-          <div style="width:${Math.min(pct,100)}%" class="${pct>100?'warning':''}"></div>
-        </div>
-      </div>
-    `;
+        <div class="progress"><div style="width:${pct}%"></div></div>
+      </div>`;
   });
 
-  const history = document.getElementById("historySelect");
-  history.innerHTML = "";
-  Object.keys(data.months).forEach(m => {
-    const o = document.createElement("option");
-    o.textContent = m;
-    history.appendChild(o);
+  historySelect.innerHTML="";
+  Object.keys(data.months).forEach(k=>{
+    const o=document.createElement("option");o.textContent=k;historySelect.appendChild(o);
   });
 }
 
-function loadHistory() {
-  const m = historySelect.value;
-  alert("Histórico de " + m + " cargado");
+function renderHistory(){
+  const m=data.months[historySelect.value];
+  let h=`<p>Ingreso: ${m.income} €</p>`;
+  Object.entries(m.categories).forEach(([k,v])=>{if(v.spent>0)h+=`<p>${k}: ${v.spent} €</p>`});
+  historyContent.innerHTML=h;
 }
 
 render();
 </script>
 </body>
 </html>
+
+
