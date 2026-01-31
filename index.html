@@ -3,40 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mis Gastos</title>
+<title>Gastos</title>
 
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#7C7CFF">
+<meta name="theme-color" content="#9AA7FF">
 
 <style>
 :root{
-  --primary:#7C7CFF;
-  --bg:#F4F5FA;
+  --primary:#9AA7FF;
+  --bg:#F4F6FB;
   --card:#FFFFFF;
   --text:#1F2937;
   --muted:#6B7280;
+  --danger:#FCA5A5;
+  --warn:#FCD34D;
+  --ok:#86EFAC;
 }
 body{
   margin:0;
   background:var(--bg);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:var(--text);
 }
-.screen{display:none;padding-bottom:80px;}
+.screen{display:none;padding-bottom:90px;}
 .screen.active{display:block;}
-header{padding:20px;}
-h1{margin:0;}
+header{
+  padding:20px;
+}
+.month{
+  font-size:20px;
+  font-weight:600;
+}
 .card{
   background:var(--card);
-  border-radius:18px;
-  padding:16px;
+  border-radius:22px;
+  padding:18px;
   margin:12px;
-  box-shadow:0 10px 25px rgba(0,0,0,.05);
+  box-shadow:0 12px 30px rgba(0,0,0,.05);
 }
-.big{
-  font-size:32px;
+.balance{
+  font-size:34px;
   font-weight:700;
+  margin:10px 0;
 }
-.muted{color:var(--muted);}
+.row{
+  display:flex;
+  justify-content:space-between;
+}
+.small{
+  font-size:14px;
+  color:var(--muted);
+}
 .progress{
   height:8px;
   background:#E5E7EB;
@@ -46,28 +63,28 @@ h1{margin:0;}
 }
 .progress div{
   height:100%;
-  background:var(--primary);
 }
-input,select,button{
-  width:100%;
-  padding:10px;
-  margin-top:8px;
-  border-radius:12px;
-  border:1px solid #E5E7EB;
-  font-size:15px;
+.category{
+  margin-top:14px;
 }
-button{
+.fab{
+  position:fixed;
+  bottom:80px;
+  right:20px;
+  width:56px;
+  height:56px;
+  border-radius:50%;
   background:var(--primary);
   color:white;
+  font-size:32px;
   border:none;
-  font-weight:600;
 }
 nav{
   position:fixed;
   bottom:0;
   left:0;
   right:0;
-  height:60px;
+  height:70px;
   background:white;
   display:flex;
   border-top:1px solid #E5E7EB;
@@ -75,87 +92,115 @@ nav{
 nav button{
   flex:1;
   background:none;
+  border:none;
+  font-size:12px;
   color:var(--muted);
 }
 nav button.active{
   color:var(--primary);
-  font-weight:700;
+  font-weight:600;
+}
+input,select,button{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  border-radius:14px;
+  border:1px solid #E5E7EB;
+  font-size:15px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- 🏠 HOME -->
+<!-- INICIO -->
 <div class="screen active" id="home">
   <header>
-    <h1>Este mes</h1>
-    <div class="big" id="available">0 €</div>
-    <div class="muted">Disponible</div>
+    <div class="month" id="monthLabel"></div>
   </header>
 
   <div class="card">
-    <p>Ingresos: <strong id="incomeView">0 €</strong></p>
-    <p>Gastos: <strong id="expenseView">0 €</strong></p>
+    <div class="small">Saldo disponible</div>
+    <div class="balance" id="available">0 €</div>
+    <div class="row">
+      <div>
+        <div class="small">Ingresos</div>
+        <strong id="incomeView">0 €</strong>
+      </div>
+      <div>
+        <div class="small">Gastos</div>
+        <strong id="expenseView">0 €</strong>
+      </div>
+    </div>
   </div>
 
-  <div id="categoryList"></div>
+  <div class="card">
+    <strong>Últimos movimientos</strong>
+    <p id="lastMove" class="small">Sin movimientos</p>
+  </div>
+
+  <div class="card">
+    <strong>Categorías</strong>
+    <div id="categoryList"></div>
+  </div>
 </div>
 
-<!-- ➕ MOVIMIENTOS -->
+<!-- AÑADIR -->
 <div class="screen" id="add">
-  <header><h1>Movimiento</h1></header>
-
+  <header><strong>Añadir movimiento</strong></header>
   <div class="card">
-    <h3>Ingreso</h3>
-    <input type="number" id="incomeInput" placeholder="Cantidad">
-    <button onclick="setIncome()">Guardar ingreso</button>
-  </div>
-
-  <div class="card">
-    <h3>Gasto</h3>
-    <input type="number" id="expenseAmount" placeholder="Cantidad">
-    <select id="expenseCategory"></select>
-    <button onclick="addExpense()">Añadir gasto</button>
-  </div>
-
-  <div class="card">
-    <h3>Nueva categoría</h3>
-    <input type="text" id="newCategory" placeholder="Nombre">
-    <button onclick="addCategory()">Crear</button>
+    <input type="number" id="amount" placeholder="Cantidad">
+    <select id="type">
+      <option value="expense">Gasto</option>
+      <option value="income">Ingreso</option>
+    </select>
+    <select id="category"></select>
+    <button onclick="addMove()">Guardar</button>
   </div>
 </div>
 
-<!-- 📊 HISTÓRICO -->
-<div class="screen" id="history">
-  <header><h1>Histórico</h1></header>
+<!-- ESTADÍSTICAS -->
+<div class="screen" id="stats">
+  <header><strong>Estadísticas</strong></header>
   <div class="card">
-    <select id="historySelect" onchange="renderHistory()"></select>
-    <div id="historyContent"></div>
+    <p class="small">Próximamente: gráficos avanzados</p>
   </div>
 </div>
 
-<!-- NAV -->
+<!-- AJUSTES -->
+<div class="screen" id="settings">
+  <header><strong>Ajustes</strong></header>
+  <div class="card">
+    <p class="small">Presupuestos y colores (siguiente fase)</p>
+  </div>
+</div>
+
+<button class="fab" onclick="show('add')">+</button>
+
 <nav>
+  <button onclick="show('stats')">Estadísticas</button>
   <button class="active" onclick="show('home')">Inicio</button>
-  <button onclick="show('add')">+</button>
-  <button onclick="show('history')">Histórico</button>
+  <button onclick="show('add')">Ahorro</button>
+  <button onclick="show('settings')">Ajustes</button>
 </nav>
 
 <script>
-const monthKey=new Date().toISOString().slice(0,7);
+const now=new Date();
+const monthKey=now.toISOString().slice(0,7);
+monthLabel.textContent=now.toLocaleString("es",{month:"long",year:"numeric"});
 
-let data=JSON.parse(localStorage.getItem("financeApp"))||{
+let data=JSON.parse(localStorage.getItem("flowfyLike"))||{
   months:{},
-  categoriesList:["Suscripciones","Salud","Belleza","Libros","Regalos","Alimentación","Viajes","Restaurantes","Lego","Ocio"]
+  categories:["Suscripciones","Salud","Belleza","Libros","Regalos","Alimentación","Viajes","Restaurantes","Lego","Ocio"],
+  last:null
 };
 
 if(!data.months[monthKey]){
   data.months[monthKey]={income:0,categories:{}};
-  data.categoriesList.forEach(c=>data.months[monthKey].categories[c]={budget:0,spent:0});
+  data.categories.forEach(c=>data.months[monthKey].categories[c]={budget:0,spent:0});
 }
 
-function save(){localStorage.setItem("financeApp",JSON.stringify(data));render();}
+function save(){localStorage.setItem("flowfyLike",JSON.stringify(data));render();}
 
 function show(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
@@ -164,64 +209,53 @@ function show(id){
   event.target.classList.add("active");
 }
 
-function setIncome(){data.months[monthKey].income=Number(incomeInput.value);save();}
-function addExpense(){
-  const a=Number(expenseAmount.value);
-  const c=expenseCategory.value;
-  data.months[monthKey].categories[c].spent+=a;
+function addMove(){
+  const a=Number(amount.value);
+  const t=type.value;
+  const c=category.value;
+  if(t==="income") data.months[monthKey].income+=a;
+  else data.months[monthKey].categories[c].spent+=a;
+  data.last={type:t,cat:c,amt:a};
   save();
-}
-function addCategory(){
-  const n=newCategory.value.trim();
-  if(!n||data.categoriesList.includes(n))return;
-  data.categoriesList.push(n);
-  Object.values(data.months).forEach(m=>m.categories[n]={budget:0,spent:0});
-  save();
+  show('home');
 }
 
 function render(){
   const m=data.months[monthKey];
-  const spent=Object.values(m.categories).reduce((a,c)=>a+c.spent,0);
+  const spent=Object.values(m.categories).reduce((s,c)=>s+c.spent,0);
   incomeView.textContent=m.income+" €";
   expenseView.textContent=spent+" €";
   available.textContent=(m.income-spent)+" €";
 
-  expenseCategory.innerHTML="";
-  data.categoriesList.forEach(c=>{
-    const o=document.createElement("option");o.textContent=c;expenseCategory.appendChild(o);
+  category.innerHTML="";
+  data.categories.forEach(c=>{
+    const o=document.createElement("option");o.textContent=c;category.appendChild(o);
   });
+
+  lastMove.textContent=data.last
+    ? `${data.last.cat}: ${data.last.amt} €`
+    : "Sin movimientos";
 
   categoryList.innerHTML="";
-  data.categoriesList.forEach(cat=>{
+  data.categories.forEach(cat=>{
     const c=m.categories[cat];
     const pct=c.budget?Math.min(c.spent/c.budget*100,100):0;
+    const color=pct>90?"var(--danger)":pct>70?"var(--warn)":"var(--ok)";
     categoryList.innerHTML+=`
-      <div class="card">
-        <strong>${cat}</strong>
-        <div class="muted">${c.spent} € / ${c.budget} €</div>
-        <input type="number" placeholder="Presupuesto"
-          value="${c.budget}"
-          onchange="data.months['${monthKey}'].categories['${cat}'].budget=this.value; save();">
-        <div class="progress"><div style="width:${pct}%"></div></div>
+      <div class="category">
+        <div class="row">
+          <strong>${cat}</strong>
+          <span class="small">${c.spent} / ${c.budget} €</span>
+        </div>
+        <div class="progress"><div style="width:${pct}%;background:${color}"></div></div>
       </div>`;
   });
-
-  historySelect.innerHTML="";
-  Object.keys(data.months).forEach(k=>{
-    const o=document.createElement("option");o.textContent=k;historySelect.appendChild(o);
-  });
 }
-
-function renderHistory(){
-  const m=data.months[historySelect.value];
-  let h=`<p>Ingreso: ${m.income} €</p>`;
-  Object.entries(m.categories).forEach(([k,v])=>{if(v.spent>0)h+=`<p>${k}: ${v.spent} €</p>`});
-  historyContent.innerHTML=h;
-}
-
 render();
 </script>
 </body>
 </html>
+
+
 
 
